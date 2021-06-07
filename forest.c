@@ -14,6 +14,7 @@ struct node {
   struct node *right;
   struct node *prev;
   struct node *next;
+  struct node *parent;
 };
 
 double entropy(int *,int *,int,int);
@@ -173,7 +174,7 @@ int main(){
   
   int Y[7] = {2,4,1,5,3,2,6};
 
-  struct node *rootL, *rootR, *firstL,*lnd,*rnd,*root;
+  struct node *rootL, *rootR, *firstL,*lnd,*rnd;
   
   // Allocate all trees in memory
   for(i=0;i<NTREE;i++){
@@ -183,32 +184,57 @@ int main(){
   // Init all nodes 
   for(i=0;i<NTREE;i++){
     tree[i]->data[0] = i;
-    if(i>0 && i<N-1){
+    int line = i%2 + 1;
+    if(i>2 && i<NTREE-1){
+      tree[i]->left = tree[2*i+1];
+      tree[i]->right = tree[2*i+2];
+      if(i%2 == 0)
+	tree[i]->parent = tree[i-1]->parent;
+      else
+	tree[i]->parent = tree[tree[i-1]->parent->data[0]+1];
       tree[i]->prev = tree[i-1];
       tree[i]->next = tree[i+1];
     }else if(i==0){
+      tree[0]->parent = NULL;
       tree[0]->prev = NULL;
+      tree[0]->left = tree[1];
+      tree[0]->right = tree[2];
+      tree[1]->parent = tree[0];
+      tree[2]->parent = tree[0];
       tree[0]->next = tree[1];
-    }else if(i== N-1){
+    }else if(i== NTREE-1){
+      if(i%2)
+	tree[i]->parent = tree[i-1]->parent;
+      else
+	tree[i]->parent = tree[tree[i-1]->parent->data[0]+1];
       tree[i]->next = NULL;
       tree[i]->prev = tree[i-1];
+      tree[i]->left = NULL;
+      tree[i]->right = NULL;
     }
   }
   int n=0,nmax=1,nbe=0,nl=1;
   char s[200];
   int space = 54, intspc=48;
+  struct node *root=NULL;
+  
   strcpy(s," ");
   for(i=0;i<space;i++)
     strcat(s," ");
   printf("%2d%s",1,s);
-  while(1){ // We use while because not all nodes are used
-    root = tree[n]->next; // Pointer to pointer in struc
+  while(1){ // while because not all nodes are used
+    root = tree[n];  // Pointer to pointer in struc
     //printf("%x %d %d\n",root,n,root->data[0]);
     //printf("%d ",root->data[0]);
     strcpy(s," ");
     for(j=0;j<intspc;j++)
       strcat(s," ");
-    printf("%d%s",tree[n]->data[0],s);
+    //    printf("%x %x %d%s",root,*root,*(*root)->next->data[0],s);
+    //printf("%x %x %d%s",tree[n],root->parent,1,s);
+    if(n>0)
+      printf("(%d,%d)%s",tree[n]->data[0],tree[n]->parent->data[0],s);
+    else
+      printf("(%d,%d)%s",tree[n]->data[0],0,s);
     nbe++; // nbr of elements per line
     if(nbe >= nmax){ // nmax max nodes per line
       nl++;
@@ -225,6 +251,11 @@ int main(){
     if(n == NTREE-1) break;
   }
   printf("\n");
+
+
+
+
+
   /*
   
   // Init root
