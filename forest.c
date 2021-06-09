@@ -6,9 +6,9 @@
 //#define NTREE 1+2^1+2^2+2^3+2^4+2^5+2^6
 #define NTREE 64
 #define N 10
-
+typedef enum {false,true} bool;
 struct node {
-  int data[N];
+  int data[100];
   int ndt;  // number of data
   struct node *left;
   struct node *right;
@@ -28,12 +28,18 @@ int classes(int *X,int *C, int n){
   //Return how many and put classes in C
 
   int i,j,nc=0;
+  bool new;
   
   for(i=0;i<n;i++){
+    new=true;
     for(j=0;j<nc;j++){
-      if(X[i] == C[j]) break;
+      if(C[j] == X[i]){
+	new=false;
+	break;
+      }
     }
-    C[++nc] = X[i];
+    if(new)
+      C[nc++] = X[i];
   }
   
   return nc;
@@ -148,19 +154,14 @@ void printree(struct node **tree,int nd, int ndt){
 
 int main(){
   int i,j;
-  //double X[2]={(double)3/8,(double)5/8};
-  
-  int X[N]={1,0,1,1,0,1,0,1};
-  
-  int class[2] = {1,0};
+
   //double T[4][4]={{1,1,1,1},{1,1,0,1},{0,0,1,2},{1,0,0,2}};
   // T = {{X},{Y},{Z},{C}}
   int T[4][4]={{1,1,0,1},{1,1,0,0},{1,0,1,0},{1,1,2,2}};
 
-  printf("%f=%f ",(double)5/8,prob(X,1,8));
-  printf("%f=%f ",(double)3/8,prob(X,0,8));
-  
-  printf("%f\n",entropy(X,class,8,2));
+#define ND 8
+  int X[ND]={1,0,1,1,0,1,0,1};
+  int class[2]={0,1};
 
 
   struct node *tree[NTREE];
@@ -195,6 +196,9 @@ int main(){
       tree[i]->prev = tree[i-1];
       tree[i]->next = tree[i+1];
     }else if(i==0){
+      for(int t=0;t<=ND;t++)
+	tree[0]->data[t+1]=X[t];
+
       tree[0]->parent = NULL;
       tree[0]->prev = NULL;
       tree[0]->left = tree[1];
@@ -213,6 +217,76 @@ int main(){
       tree[i]->right = NULL;
     }
   }
+
+
+
+  // Apply decisions
+
+
+  //double X[2]={(double)3/8,(double)5/8};
+
+  // Data
+  int C[ND];
+
+  // Print data
+  for(i=0;i<ND;i++)
+    printf("%d ",X[i]);
+  printf("\n");
+  
+  //  printf("%f=%f ",(double)5/8,prob(X,1,8));
+  //printf("%f=%f ",(double)3/8,prob(X,0,8));
+  //printf("%f\n",entropy(X,class,8,2));
+
+
+  
+  int nc=0;
+
+  // Find all classes & print them
+  nc = classes(X,C,8);
+  printf("Number of classes %d\n",nc);
+  for(i=0;i<nc;i++)
+    printf("%d ",C[i]);
+
+  printf("\n");
+  // Get the probability for each class & print them
+
+  double P[nc];
+  for(i=0;i<nc;i++){
+    P[i] = prob(X,C[i],ND);
+    printf("Prob of class %d = %f\n",C[i],P[i]);
+  }
+
+  // Calculate total entropi
+  double e = entropy(X,C,ND,nc);
+  printf("Total entropy: %f\n",e);
+  
+  
+  // For each possible decisions/branch get the information gain
+  // Sorting
+  for(i=0;i<NTREE-1;i++){
+    printf("i=%d\n",i);
+    for(j=1;j<=ND;j++){
+      printf("j=%d\n",j);
+      if(tree[i]->data[j]<1){
+	tree[i]->left->data[j]=tree[i]->data[j];
+	printf("%d ",tree[i]->left->data[j]);
+      //=tree[i]->data[1];
+      }else{
+	tree[i]->right->data[j]=tree[i]->data[j];
+	printf("%d ",tree[i]->right->data[j]);
+      //tree[i]->right->data[1]=tree[i]->data[1];
+      }
+    }
+  }
+
+  printf("\n");
+  // Find the optimal set of decisiosn
+
+
+  // Get the final results
+  
+  // Print results
+  
   int n=0,nmax=1,nbe=0,nl=1;
   char s[200];
   int space = 54, intspc=48;
