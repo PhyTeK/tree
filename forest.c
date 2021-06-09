@@ -4,7 +4,7 @@
 #include <string.h>
 
 //#define NTREE 1+2^1+2^2+2^3+2^4+2^5+2^6
-#define NTREE 63
+#define NTREE 64
 #define N 10
 
 struct node {
