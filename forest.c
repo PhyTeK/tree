@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-//#define NTREE 1+2^1+2^2+2^3+2^4+2^5+2^6
 #define NTREE 64
 #define N 10
 typedef enum {false,true} bool;
@@ -165,9 +164,9 @@ int main(){
   // T = {{X},{Y},{Z},{C}}
   int T[4][4]={{1,1,0,1},{1,1,0,0},{1,0,1,0},{1,1,2,2}};
 
-#define ND 8
+#define ND 9
   int X[ND]={1,3,1,1,4,2,1,3,2};
-  int class[3]={1,2,3,4};
+  int class[4]={1,2,3,4};
   
 
   struct node *tree[NTREE];
