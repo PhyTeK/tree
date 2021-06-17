@@ -3,8 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define NTREE 64
-#define N 10
+#define NTREE 64  // Number of nodes
+#define N 10      // Number of ??
+#define ND 9      // Number of data
+
 typedef enum {false,true} bool;
 struct node {
   int index;
@@ -26,7 +28,8 @@ double gain(int *,int *,int *,int,int);
 double gini(int *,int);
 double prob(int *,int,int);
 void printree(struct node **,int, int);
-
+void initnodes(struct node **,int *,int *);
+  
 int classes(int *X,int *C, int n){
   //Find all different classes in X
   //Return how many and put classes in C
@@ -157,40 +160,12 @@ void printree(struct node **tree,int nd, int ndt){
   
 }
 
-int main(){
-  int i,j;
-
-  //double T[4][4]={{1,1,1,1},{1,1,0,1},{0,0,1,2},{1,0,0,2}};
-  // T = {{X},{Y},{Z},{C}}
-  int T[4][4]={{1,1,0,1},{1,1,0,0},{1,0,1,0},{1,1,2,2}};
-
-#define ND 9
-  int X[ND]={1,3,1,1,4,2,1,3,2};
-  int class[4]={1,2,3,4};
+void initnodes(struct node **tree,int *X,int *class){
+  size_t i;
   
-
-  struct node *tree[NTREE];
-
-  // From root populate left then right childs
-  // Then move root to first left child
-  // If more than one class populate left and right childs
-  // move root to first rigth child from root
-  // If more than one class populate left and right childs
-  // move root to first left child ...
-  
-  int Y[7] = {2,4,1,5,3,2,6};
-
-  struct node *rootL, *rootR, *firstL,*lnd,*rnd;
-  
-  // Allocate all trees in memory
-  for(i=0;i<NTREE;i++){
-    tree[i] = (struct node *)malloc(sizeof(struct node));
-  }
-
-  // Init all nodes 
   for(i=0;i<NTREE;i++){
     tree[i]->index = i;
-    int line = i%2 + 1;
+
     if(i>2 && i<NTREE-1){
       tree[i]->left = tree[2*i+1];
       tree[i]->right = tree[2*i+2];
@@ -236,11 +211,46 @@ int main(){
       tree[i]->right = NULL;
     }
   }
+}
 
 
+
+int main(){
+  int i,j;
+
+  //double T[4][4]={{1,1,1,1},{1,1,0,1},{0,0,1,2},{1,0,0,2}};
+  // T = {{X},{Y},{Z},{C}}
+  int T[4][4]={{1,1,0,1},{1,1,0,0},{1,0,1,0},{1,1,2,2}};
+
+
+  int X[ND]={1,3,1,1,4,2,1,3,2};
+  int class[4]={1,2,3,4};
+  
+  struct node *rootL, *rootR, *firstL,*lnd,*rnd;
+  struct node *tree[NTREE];
+
+  // From root populate left then right childs
+  // Then move root to first left child
+  // If more than one class populate left and right childs
+  // move root to first rigth child from root
+  // If more than one class populate left and right childs
+  // move root to first left child ...
+  
+  int Y[7] = {2,4,1,5,3,2,6};
+
+
+  
+  // Allocate all trees in memory
+  for(i=0;i<NTREE;i++){
+    tree[i] = (struct node *)malloc(sizeof(struct node));
+  }
+  printf("Size of tree: %d\n",sizeof(tree));
+  
+
+  
 
   // Apply decisions
-
+  // for each possible classes
 
   //double X[2]={(double)3/8,(double)5/8};
 
@@ -254,9 +264,6 @@ int main(){
   
   //printf("%f=%f ",(double)5/8,prob(X,1,8));
   //printf("%f=%f ",(double)3/8,prob(X,0,8));
-
-
-
   
   int nc=0;
 
@@ -276,23 +283,24 @@ int main(){
     printf("Prob of class %d = %f\n",C[i],P[i]);
   }
 
-
   double lprob[ND],rprob[ND];
   int lclass[ND],rclass[ND];
-  
-  
+    
   // For each possible decisions/branch get the information gain
   // Sorting
-  for(i=0;i<10;i++){
-    for(int t=0;t<ND;t++){
-      if(tree[i]->left != NULL && tree[i]->data[t] == 1){
-	tree[i]->left->data[tree[i]->left->ndt]=tree[i]->data[t];
-	tree[i]->left->ndt++;
-      }
-      if (tree[i]->right != NULL && tree[i]->data[t] >= 2){
-	tree[i]->right->data[tree[i]->right->ndt]=tree[i]->data[t];
-	tree[i]->right->ndt++;
-      }
+
+  for(int c=0;c<nc;c++){
+    initnodes(tree,X,class);  // Populate root with data from X    
+    for(i=0;i<ND;i++){
+      for(int t=0;t<ND;t++){
+	if(tree[i]->left != NULL && tree[i]->data[t] <= C[c]){
+	  tree[i]->left->data[tree[i]->left->ndt]=tree[i]->data[t];
+	  tree[i]->left->ndt++;
+	}
+	if (tree[i]->right != NULL && tree[i]->data[t] > C[c]){
+	  tree[i]->right->data[tree[i]->right->ndt]=tree[i]->data[t];
+	  tree[i]->right->ndt++;
+	}
       
       
       /*if(tree[i]->data[j]<1){
@@ -333,6 +341,7 @@ int main(){
     //eright = entropy(rprob,rclass,tree[i]->right->ndt,ncr);
 
   }
+    
   // Calculate total entropi for each node
     
   for(int n=0;n<NTREE;n++){
@@ -349,7 +358,8 @@ int main(){
   //printf("\nright entropy=%f\n",eright);
   // Find the optimal set of decisiosn
 
-
+  
+  
   // Get the final results
   
   // Print results
@@ -363,6 +373,7 @@ int main(){
   for(i=0;i<space;i++)
     strcat(s," ");
   printf("%2d%s",1,s);
+
   while(1){ // while because not all nodes are used
     root = tree[n];  // Pointer to pointer in struc
     //printf("%x %d %d\n",root,n,root->index);
@@ -381,13 +392,11 @@ int main(){
     */
     
     // Print data
-
     printf("(%d,",tree[n]->index);
     for(int t=0;t<ND;t++)
       if(tree[n]->data[t] != 0)
 	printf("%d",tree[n]->data[t]);
     printf(",%2.1f)%s",tree[n]->entropy,s);
-
 
     nbe++; // nbr of elements per line
     if(nbe >= nmax){ // nmax max nodes per line
@@ -405,8 +414,7 @@ int main(){
     if(n == NTREE-1) break;
   }
   printf("\n");
-
-
+  }
   /*
   
   // Init root
