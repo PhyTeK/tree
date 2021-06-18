@@ -29,7 +29,8 @@ double gini(int *,int);
 double prob(int *,int,int);
 void printree(struct node **,int, int);
 void initnodes(struct node **,int *,int *);
-  
+void printresults(struct node **);
+
 int classes(int *X,int *C, int n){
   //Find all different classes in X
   //Return how many and put classes in C
@@ -213,6 +214,60 @@ void initnodes(struct node **tree,int *X,int *class){
   }
 }
 
+void printresults(struct node **tree){
+  // Print results
+  
+  int i,j,n=0,nmax=1,nbe=0,nl=1;
+  char s[200];
+  int space = 54, intspc=48;
+  struct node *root=NULL;
+  
+  strcpy(s," ");
+  for(i=0;i<space;i++)
+    strcat(s," ");
+  printf("%2d%s",1,s);
+
+  while(1){ // while because not all nodes are used
+    root = tree[n];  // Pointer to pointer in struc
+    //printf("%x %d %d\n",root,n,root->index);
+    //printf("%d ",root->index);
+    strcpy(s," ");
+    for(j=0;j<intspc;j++)
+      strcat(s," ");
+    //    printf("%x %x %d%s",root,*root,*(*root)->next->index,s);
+    //printf("%x %x %d%s",tree[n],root->parent,1,s);
+    // Print parents
+    /*
+    if(n>0)
+      printf("(%d,%d)%s",tree[n]->index,tree[n]->parent->index,s);
+    else
+      printf("(%d,%d)%s",tree[n]->index,0,s);
+    */
+    
+    // Print data
+    printf("(%d,",tree[n]->index);
+    for(int t=0;t<ND;t++)
+      if(tree[n]->data[t] != 0)
+	printf("%d",tree[n]->data[t]);
+    printf(",%2.1f)%s",tree[n]->entropy,s);
+
+    nbe++; // nbr of elements per line
+    if(nbe >= nmax){ // nmax max nodes per line
+      nl++;
+      space -= 10;
+      strcpy(s," ");
+      for(j=0;j<space;j++)
+	strcat(s," ");
+      printf("\n%2d%s",nl,s);
+      nbe=0;
+      nmax *= 2;
+      intspc /= 2;
+    }
+    n++;
+    if(n == NTREE-1) break;
+  }
+  printf("\n");
+}
 
 
 int main(){
@@ -290,7 +345,8 @@ int main(){
   // Sorting
 
   for(int c=0;c<nc;c++){
-    initnodes(tree,X,class);  // Populate root with data from X    
+    initnodes(tree,X,class);  // Populate root with data from X
+    
     for(i=0;i<ND;i++){
       for(int t=0;t<ND;t++){
 	if(tree[i]->left != NULL && tree[i]->data[t] <= C[c]){
@@ -353,6 +409,10 @@ int main(){
     printf("(%d,%d,%d) ",n,tree[n]->ndc,tree[n]->class[0]);
   }
 
+  printresults(tree);
+  
+  }
+  
   printf("\n");
   //printf("\nleft entropy=%f",eleft);
   //printf("\nright entropy=%f\n",eright);
@@ -361,60 +421,9 @@ int main(){
   
   
   // Get the final results
-  
-  // Print results
-  
-  int n=0,nmax=1,nbe=0,nl=1;
-  char s[200];
-  int space = 54, intspc=48;
-  struct node *root=NULL;
-  
-  strcpy(s," ");
-  for(i=0;i<space;i++)
-    strcat(s," ");
-  printf("%2d%s",1,s);
 
-  while(1){ // while because not all nodes are used
-    root = tree[n];  // Pointer to pointer in struc
-    //printf("%x %d %d\n",root,n,root->index);
-    //printf("%d ",root->index);
-    strcpy(s," ");
-    for(j=0;j<intspc;j++)
-      strcat(s," ");
-    //    printf("%x %x %d%s",root,*root,*(*root)->next->index,s);
-    //printf("%x %x %d%s",tree[n],root->parent,1,s);
-    // Print parents
-    /*
-    if(n>0)
-      printf("(%d,%d)%s",tree[n]->index,tree[n]->parent->index,s);
-    else
-      printf("(%d,%d)%s",tree[n]->index,0,s);
-    */
-    
-    // Print data
-    printf("(%d,",tree[n]->index);
-    for(int t=0;t<ND;t++)
-      if(tree[n]->data[t] != 0)
-	printf("%d",tree[n]->data[t]);
-    printf(",%2.1f)%s",tree[n]->entropy,s);
 
-    nbe++; // nbr of elements per line
-    if(nbe >= nmax){ // nmax max nodes per line
-      nl++;
-      space -= 10;
-      strcpy(s," ");
-      for(j=0;j<space;j++)
-	strcat(s," ");
-      printf("\n%2d%s",nl,s);
-      nbe=0;
-      nmax *= 2;
-      intspc /= 2;
-    }
-    n++;
-    if(n == NTREE-1) break;
-  }
-  printf("\n");
-  }
+  
   /*
   
   // Init root
