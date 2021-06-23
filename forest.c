@@ -12,10 +12,11 @@ struct node {
   int index;
   int data[100];
   int class[100];
+  int c;
   int ndt;  // number of data
   int ndc;  // number of classes
   double entropy;
-
+  double gini;
   struct node *left;
   struct node *right;
   struct node *prev;
@@ -152,9 +153,7 @@ void printree(struct node **tree,int nd, int ndt){
       printf("%d ",tree[6]->data[i]);
     printf("\n%d",l++);
     printf("\n");
-    
-    
-    
+        
     break;
        
   }
@@ -162,12 +161,18 @@ void printree(struct node **tree,int nd, int ndt){
 }
 
 void initnodes(struct node **tree,int *X,int *class){
-  size_t i;
+  size_t i,t;
   
   for(i=0;i<NTREE;i++){
     tree[i]->index = i;
+    tree[i]->gini = 0;
+    tree[i]->entropy = 0;
+    tree[i]->ndt = 0;
+    for(t=0;t<ND;t++)
+      tree[i]->data[t]=0;  // Clear all nodes data
 
-    if(i>2 && i<NTREE-1){
+    if(i>1 && i<NTREE-1){
+      tree[i]->ndt = 0;
       tree[i]->left = tree[2*i+1];
       tree[i]->right = tree[2*i+2];
       if(i%2 == 0)
@@ -178,8 +183,9 @@ void initnodes(struct node **tree,int *X,int *class){
       tree[i]->next = tree[i+1];
       tree[i]->ndt = 0;
       tree[i]->ndc = 0;
+    
     }else if(i==0){
-      for(int t=0;t<ND;t++){
+      for(t=0;t<ND;t++){
 	tree[0]->data[t]=X[t]; // Populate root with data
 	tree[0]->ndt = ND;
 	tree[0]->ndc = classes(X,class,ND);
@@ -249,7 +255,7 @@ void printresults(struct node **tree){
     for(int t=0;t<ND;t++)
       if(tree[n]->data[t] != 0)
 	printf("%d",tree[n]->data[t]);
-    printf(",%2.1f)%s",tree[n]->entropy,s);
+    printf(",%d,%2.1f)%s",tree[n]->c,tree[n]->gini,s);
 
     nbe++; // nbr of elements per line
     if(nbe >= nmax){ // nmax max nodes per line
@@ -292,8 +298,6 @@ int main(){
   // move root to first left child ...
   
   int Y[7] = {2,4,1,5,3,2,6};
-
-
   
   // Allocate all trees in memory
   for(i=0;i<NTREE;i++){
@@ -302,15 +306,13 @@ int main(){
   printf("Size of tree: %d\n",sizeof(tree));
   
 
-  
-
   // Apply decisions
   // for each possible classes
 
   //double X[2]={(double)3/8,(double)5/8};
 
   // Data
-  int C[ND]={1,2,3,4};
+  int C[ND];
   
   // Print data
   for(i=0;i<ND;i++)
@@ -330,6 +332,7 @@ int main(){
 
   printf("Total entropy: %f\n",entropy(X,C,ND,nc));
   printf("\n");
+
   // Get the probability for each class & print them
 
   double P[nc];
@@ -345,84 +348,52 @@ int main(){
   // Sorting
 
   for(int c=0;c<nc;c++){
+    
     initnodes(tree,X,class);  // Populate root with data from X
+    tree[0]->gini = gini(tree[0]->data,tree[0]->ndt);
     
     for(i=0;i<ND;i++){
+      tree[i]->c = C[c];
       for(int t=0;t<ND;t++){
+	// Left and Right separation for class C[c]
 	if(tree[i]->left != NULL && tree[i]->data[t] <= C[c]){
 	  tree[i]->left->data[tree[i]->left->ndt]=tree[i]->data[t];
 	  tree[i]->left->ndt++;
+
 	}
 	if (tree[i]->right != NULL && tree[i]->data[t] > C[c]){
 	  tree[i]->right->data[tree[i]->right->ndt]=tree[i]->data[t];
 	  tree[i]->right->ndt++;
 	}
-      
-      
-      /*if(tree[i]->data[j]<1){
-	//tree[i]->left->data[j]=tree[i]->data[j];
-	printf("%d ",tree[i]->left->index);
-      //=tree[i]->data[1];
-      }else{
-	//tree[i]->right->data[j]=tree[i]->data[j];
-	printf("%d ",tree[i]->right->index);
-      //tree[i]->right->data[1]=tree[i]->data[1];
       }
-      */
+      // Caculate Gini impurity
+      if(tree[i]->left != NULL)
+	tree[i]->left->gini = gini(tree[i]->left->data,tree[i]->left->ndt);
+      if(tree[i]->right != NULL)
+	tree[i]->right->gini = gini(tree[i]->right->data,tree[i]->right->ndt);
+    
     }
-
-    //    tree[i]->ndc = classes(tree[i]->data,tree[i]->class,tree[i]->ndt);
-  
-    //double eleft=0,eright=0;
-    //printf("Total entropy: %f\n",tree[0]->entropy);
-
-
-    // Get entropy for left&right childs
-
-    //  if(tree[i]->left != NULL && tree[i]->right != NULL)
-    //  printf("i=%d ndtl=%d ndtr=%d\n",i,tree[i]->left->ndt,tree[i]->right->ndt);
-
-    /*
-    for(int k=0;k<tree[i]->left->ndt;k++)
-      lprob[k] = prob(tree[i]->left->data,tree[i]->left->data[k],tree[i]->left->ndt);
-    for(int k=0;k<tree[i]->right->ndt;k++)
-      rprob[k] =
-      prob(tree[i]->right->data,tree[i]->right->data[k],tree[i]->right->ndt);
-    */
+      
+    // Calculate total entropi for each node
     
-    //    int ncl = classes(tree[i]->left->data,lclass,tree[i]->left->ndt);
-    //int ncr = classes(tree[i]->right->data,lclass,tree[i]->right->ndt);
-    //printf("nlc=%d ncr=%d",ncl,ncr);
-    //eleft = entropy(lprob,lclass,tree[i]->left->ndt,ncl);
-    //eright = entropy(rprob,rclass,tree[i]->right->ndt,ncr);
-
-  }
+    /* for(int n=0;n<NTREE;n++){ */
+    /*   tree[n]->ndc=classes(tree[n]->data,tree[n]->class,tree[n]->ndt); */
     
-  // Calculate total entropi for each node
+    /*   tree[n]->entropy = 0.0; */
+    /*   if(tree[n]->ndt > 0) */
+    /* 	tree[n]->entropy = entropy(tree[n]->data,tree[n]->class,tree[n]->ndt,tree[n]->ndc); */
+    /*   printf("(%d,%d,%d) ",n,tree[n]->ndc,tree[n]->class[0]); */
     
-  for(int n=0;n<NTREE;n++){
-    tree[n]->ndc=classes(tree[n]->data,tree[n]->class,tree[n]->ndt);
-    
-    tree[n]->entropy = 0.0;
-    if(tree[n]->ndt > 0)
-      tree[n]->entropy = entropy(tree[n]->data,tree[n]->class,tree[n]->ndt,tree[n]->ndc);
-    printf("(%d,%d,%d) ",n,tree[n]->ndc,tree[n]->class[0]);
-  }
 
   printresults(tree);
   
   }
-  
   printf("\n");
   //printf("\nleft entropy=%f",eleft);
   //printf("\nright entropy=%f\n",eright);
   // Find the optimal set of decisiosn
-
-  
   
   // Get the final results
-
-
   
   /*
   
@@ -517,8 +488,6 @@ int main(){
     }
   }
   printf("ndt5 = %d ndt6 = %d\n",tree[5]->ndt,tree[6]->ndt);
-
- 
 
   printree(tree,6,7);
   */
