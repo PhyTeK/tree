@@ -17,6 +17,7 @@ struct node {
   int ndc;  // number of classes
   double entropy;
   double gini;
+  double gain;
   struct node *left;
   struct node *right;
   struct node *prev;
@@ -25,7 +26,7 @@ struct node {
 };
 
 double entropy(int *,int *,int,int);
-double gain(int *,int *,int *,int,int);
+double gain(int *,int *,int *,int,int,int);
 double gini(int *,int);
 double prob(int *,int,int);
 void printree(struct node **,int, int);
@@ -58,24 +59,26 @@ int classes(int *X,int *C, int n){
 double entropy(int *p,int *c,int n,int nc){
   // Mesure the non-homogeneity/uncertainly of p probalities
   double h=0,pb;
-
+  
   for(int i=0;i<nc;i++){
+    
     pb = prob(p,c[i],n);
-    if(pb!= 0.0)
+    printf("pb[%d]=%f\n",i,pb);
+    if(pb != 0.0)    
       h += pb*log2(pb);
   }
   
   return -h;
 }
 
-double gain(int *X,int *class,int *A,int nx,int na){
+double gain(int *X,int *class,int *A,int nx,int na,int nc){
   // Gain = Entropy(X) - Conditional entropy(X|A)
   // CondEntropy(Y|X) = - Sum_{x,y}(p(x,y)*log(p(x,y)/p(x)))
   
   double g=0;
 
-  double hx = entropy(X,class,nx,2);
-  double ha = entropy(A,class,na,2);
+  double hx = entropy(X,class,nx,nc);
+  double ha = entropy(A,class,na,nc);  // Warning! is nc correct?
   
   for(int i=0;i<na;i++)
     g += ha*A[i]*prob(X,A[i],nx);
@@ -255,7 +258,7 @@ void printresults(struct node **tree){
     for(int t=0;t<ND;t++)
       if(tree[n]->data[t] != 0)
 	printf("%d",tree[n]->data[t]);
-    printf(",%d,%2.1f)%s",tree[n]->c,tree[n]->gini,s);
+    printf(",%d,%2.1f)%s",tree[n]->c,tree[n]->entropy,s);
 
     nbe++; // nbr of elements per line
     if(nbe >= nmax){ // nmax max nodes per line
@@ -278,6 +281,13 @@ void printresults(struct node **tree){
 
 int main(){
   int i,j;
+  int minc=10000;  // Optimal class
+  double mine=10000.0; // Minimum entropy
+
+  struct node *l=NULL,*r=NULL;
+  
+  //  l=(struct node *)malloc(sizeof(struct node));
+  // r=(struct node *)malloc(sizeof(struct node));
 
   //double T[4][4]={{1,1,1,1},{1,1,0,1},{0,0,1,2},{1,0,0,2}};
   // T = {{X},{Y},{Z},{C}}
@@ -302,6 +312,10 @@ int main(){
   // Allocate all trees in memory
   for(i=0;i<NTREE;i++){
     tree[i] = (struct node *)malloc(sizeof(struct node));
+    if(tree[i] == NULL){
+      printf("Error Memory: Cannot allocate tree[%d]\n",i);
+      exit(1);
+    }
   }
   printf("Size of tree: %d\n",sizeof(tree));
   
@@ -366,29 +380,54 @@ int main(){
 	  tree[i]->right->ndt++;
 	}
       }
+      
+      // Caculate entropy for each node
+
+      if(tree[i]->left != NULL){
+      	l = tree[i]->left; // Copy tree left pointer
+	l->entropy = entropy(l->data,l->class,l->ndt,l->ndc);
+      }
+      if(tree[i]->right != NULL){
+      	r = tree[i]->right; // Copy tree right pointer
+	r->entropy = entropy(r->data,r->class,r->ndt,r->ndc);
+      }
+
+      printf("index=%d c=%d -> le %f\n",l->index,c,l->entropy);
       // Caculate Gini impurity
       if(tree[i]->left != NULL)
 	tree[i]->left->gini = gini(tree[i]->left->data,tree[i]->left->ndt);
       if(tree[i]->right != NULL)
 	tree[i]->right->gini = gini(tree[i]->right->data,tree[i]->right->ndt);
-    
-    }
-      
-    // Calculate total entropi for each node
-    
-    /* for(int n=0;n<NTREE;n++){ */
-    /*   tree[n]->ndc=classes(tree[n]->data,tree[n]->class,tree[n]->ndt); */
-    
-    /*   tree[n]->entropy = 0.0; */
-    /*   if(tree[n]->ndt > 0) */
-    /* 	tree[n]->entropy = entropy(tree[n]->data,tree[n]->class,tree[n]->ndt,tree[n]->ndc); */
-    /*   printf("(%d,%d,%d) ",n,tree[n]->ndc,tree[n]->class[0]); */
-    
 
-  printresults(tree);
-  
-  }
+      // Caculate information gain
+
+      if(tree[i]->left != NULL){
+      	l = tree[i]->left; // Copy tree left pointer
+	l->gain = gain(l->data,l->class,l->parent->data,l->ndt, l->parent->ndt,l->ndc);
+      }
+      if(tree[i]->right != NULL){
+      	r = tree[i]->right; // Copy tree right pointer
+	r->gain = gain(r->data,r->class,r->parent->data,r->ndt, r->parent->ndt,r->ndc);
+      }
+      
+    } // i-loop
+
+    // Record class with minima entropy/gini/gain
+      
+    if(l->entropy < mine){
+      minc = C[c];
+      mine = l->entropy;
+    }
+
+    printf("Optimal class: %d -> %f\n",minc,mine);
+
+    printresults(tree);
+
+    
+  } // class c-loop
+
   printf("\n");
+
   //printf("\nleft entropy=%f",eleft);
   //printf("\nright entropy=%f\n",eright);
   // Find the optimal set of decisiosn
@@ -498,6 +537,5 @@ int main(){
     free(tree[i]);
   }
  
-
   return 0;
 }
